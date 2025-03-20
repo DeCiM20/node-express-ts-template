@@ -1,40 +1,21 @@
 import "express-async-errors"
 import express, { Express, NextFunction, Request, Response } from "express"
-import dotenv from "dotenv"
+import cookieParser from "cookie-parser"
+import { env } from "./env"
 import bodyParser from "body-parser"
-import session from "express-session"
-import RedisStore from "connect-redis"
 const app: Express = express()
-dotenv.config()
 
 import corsOptions from "./cors"
 import { ERROR_CODES, ExpressError } from "./middleware/error"
 import logger from "./error-logger"
-import redisClient from "./middleware/redis"
 
 app.options("*", corsOptions)
+app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
-const port = process.env.PORT || 3000
-
-app.use(
-  session({
-    store: new RedisStore({
-      client: redisClient,
-    }),
-    secret: process.env.EXPRESS_SESSION_SECRET!,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
-    }, // Set to true if using HTTPS (Production)
-  })
-)
-
-app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`)
+app.listen(env.PORT, () => {
+  console.log(`[server]: Server is running at http://localhost:${env.PORT}`)
 })
 
 import router from "./routes"
@@ -62,7 +43,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
       stack: err.stack,
     })
 
-    res.status(500).json({
+    return res.status(500).json({
       status: 500,
       message: "Internal Server Error !!!",
     })
