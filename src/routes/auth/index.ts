@@ -1,7 +1,25 @@
 import express from "express"
 import { signIn, signUp, signOut, refresh, profile } from "./controller"
 import { protectedRoute, verifyRefresh } from "~/middleware/auth"
+import passport from "passport"
+
 const router = express.Router()
+
+router.get("/google", (req, res, next) => {
+  passport.authenticate("google", {
+    scope: ["email", "profile"],
+  })(req, res, next)
+})
+
+router.get("/github", (req, res, next) => {
+  passport.authenticate("github", {
+    scope: ["email", "profile"],
+  })(req, res, next)
+})
+
+router.get("/google/callback", passport.authenticate("google"))
+
+router.get("/github/callback", passport.authenticate("github"))
 
 router.post("/sign-up", signUp)
 

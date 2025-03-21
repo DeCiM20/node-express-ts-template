@@ -19,6 +19,10 @@ const EnvSchema = z.object({
   REDIS_URL: z.string().optional().default("redis://127.0.0.1:6379"),
   JWT_ACCESS_SECRET: z.string().optional().default(JWT_ACCESS_SECRET),
   JWT_REFRESH_SECRET: z.string().optional().default(JWT_REFRESH_SECRET),
+  GOOGLE_CLIENT_ID: z.string(),
+  GOOGLE_CLIENT_SECRET: z.string(),
+  GITHUB_CLIENT_ID: z.string(),
+  GITHUB_CLIENT_SECRET: z.string()
 })
 
 export const env = EnvSchema.parse(process.env)

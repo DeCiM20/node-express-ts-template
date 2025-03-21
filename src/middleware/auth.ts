@@ -24,7 +24,7 @@ const protectedRoute = async (
   try {
     const token = req.cookies["Access-Token"]
     const user = await readToken(token)
-    req.user = user
+    req.session.user = user
     next()
   } catch (e) {
     throw new ExpressError({
@@ -56,7 +56,7 @@ const verifyRefresh = async (
       })
     }
 
-    req.user = user as SessionUserType
+    req.session.user = user as SessionUserType
     next()
   })
 }

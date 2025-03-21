@@ -7,7 +7,7 @@ export type SessionUserType = {
 declare global {
   namespace Express {
     interface Request {
-      user: SessionUserType
+      session: { user: SessionUserType }
     }
   }
 }
