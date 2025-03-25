@@ -5,8 +5,8 @@ import { validate } from "uuid"
 
 const isDev = env.NODE_ENV === "development"
 
-const ACCESS_TOKEN_EXPIRY = 24 * 60 * 60 // 1 Days
-const REFRESH_TOKEN_EXPIRY = 30 * 24 * 60 * 60 // 30 Days
+const ACCESS_TOKEN_EXPIRY = 24 * 60 * 60 // 1 Days in seconds
+const REFRESH_TOKEN_EXPIRY = 30 * 24 * 60 * 60 // 30 Days in seconds
 
 type CookieConfigType = {
   sameSite: boolean | "strict" | "lax" | "none" | undefined
@@ -22,14 +22,14 @@ export const COOKIE_CONFIG: {
 } = {
   access: {
     sameSite: isDev ? "none" : "strict",
-    maxAge: ACCESS_TOKEN_EXPIRY,
+    maxAge: ACCESS_TOKEN_EXPIRY * 1000, // In milliseconds
     httpOnly: true,
     secure: isDev ? false : true,
     path: "/api",
   },
   refresh: {
     sameSite: isDev ? "none" : "strict",
-    maxAge: REFRESH_TOKEN_EXPIRY,
+    maxAge: REFRESH_TOKEN_EXPIRY * 1000, // In milliseconds
     httpOnly: true,
     secure: isDev ? false : true,
     path: "/api/auth/refresh",
