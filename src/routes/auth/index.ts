@@ -1,11 +1,13 @@
 import express from "express"
-import { signIn, signUp, signOut, refresh, profile } from "./controller"
+import { signIn, signUp, signOut, refresh, profile, signInRequest } from "./controller"
 import { protectedRoute, verifyRefresh } from "~/middleware/auth"
 const router = express.Router()
 
 router.post("/sign-up", signUp)
 
 router.post("/sign-in", signIn)
+
+router.post("/request-code", signInRequest)
 
 router.post("/refresh", verifyRefresh, refresh)
 

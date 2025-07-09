@@ -16,6 +16,7 @@ export const ERROR_CODES = {
   UNPROCESSABLE_CONTENT: 422,
   TOO_MANY_REQUESTS: 429,
   CLIENT_CLOSED_REQUEST: 499,
+  SESSION_EXPIRED: 419
 }
 
 export class ExpressError extends Error {

@@ -10,10 +10,11 @@ import {
   destroySession,
   refreshAccessToken,
 } from "~/utils/jwt"
+import redisClient from "~/middleware/redis"
 
-const saltRounds = 10
-
-const Users: { id: string; email: string; password: string }[] = []
+const Users: { id: string; email: string }[] = [
+  { id: "x98a76das8yc8a9s8d09", email: "johndoe@gmail.com" },
+]
 
 export const signUp = async (req: Request, res: Response) => {
   const {
@@ -43,16 +44,18 @@ export const signUp = async (req: Request, res: Response) => {
     })
   }
 
-  const hashedPassword = await bcrypt.hash(input.password, saltRounds)
+  const id = v4()
 
-  Users.push({ id: v4(), email: input.email, password: hashedPassword })
+  Users.push({ id, email: input.email })
+
+  console.log("Created User Id is", id)
 
   return res.status(200).json({
     message: "User created successfully!!!",
   })
 }
 
-export const signIn = async (req: Request, res: Response) => {
+export const signInRequest = async (req: Request, res: Response) => {
   const {
     success,
     error,
@@ -60,7 +63,6 @@ export const signIn = async (req: Request, res: Response) => {
   } = zBodyParse(
     z.object({
       email: z.string().email(),
-      password: z.string().max(30),
     }),
     req.body
   )
@@ -75,7 +77,40 @@ export const signIn = async (req: Request, res: Response) => {
 
   const user = Users.find(u => u.email === input.email)
 
-  if (!user || !(await bcrypt.compare(input.password, user.password))) {
+  if (!user) {
+    throw new ExpressError({
+      code: "UNAUTHORIZED",
+      message: "Invalid credentials!!",
+    })
+  }
+
+  return res.status(200).json({success: true, message: "Code sent successfully!"});
+}
+
+export const signIn = async (req: Request, res: Response) => {
+  const {
+    success,
+    error,
+    data: input,
+  } = zBodyParse(
+    z.object({
+      email: z.string().email(),
+      code: z.string().max(6).min(6),
+    }),
+    req.body
+  )
+
+  if (!success || error) {
+    throw new ExpressError({
+      code: "BAD_REQUEST",
+      message: "Invalid Inputs!!!",
+      error: error,
+    })
+  }
+
+  const user = Users.find(u => u.email === input.email)
+
+  if (!user || input.code !== "111111") {
     throw new ExpressError({
       code: "UNAUTHORIZED",
       message: "Invalid credentials!!",
@@ -84,14 +119,19 @@ export const signIn = async (req: Request, res: Response) => {
 
   const uuid = v4()
 
+  console.log("User id is", user.id)
+
   const accessToken = await createJWT(user.id, uuid, "access")
   const refreshToken = await createJWT(user.id, uuid, "refresh")
+
+  console.log("Access token is", accessToken)
 
   res.cookie("Access-Token", accessToken, COOKIE_CONFIG.access)
   res.cookie("Refresh-Token", refreshToken, COOKIE_CONFIG.refresh)
 
   return res.status(200).json({
-    message: "Login Successful!!",
+    id: user.id,
+    email: user.email,
   })
 }
 
@@ -100,12 +140,16 @@ export const refresh = async (req: Request, res: Response) => {
 
   if (!token) {
     throw new ExpressError({
-      code: "FORBIDDEN",
+      code: "BAD_REQUEST",
       message: "Refresh token missing!!",
     })
   }
 
+  console.log("Refreh called")
+
   const { accessToken, refreshToken } = await refreshAccessToken(token)
+
+  console.log("Tokens are", accessToken, refreshToken)
 
   res.cookie("Access-Token", accessToken, {
     ...COOKIE_CONFIG.access,
@@ -143,10 +187,26 @@ export const signOut = async (req: Request, res: Response) => {
   res.cookie("Refresh-Token", "", { ...COOKIE_CONFIG.refresh, maxAge: 1 })
 
   return res.status(200).json({
+    success: true,
     message: "Logged out successfully!!",
   })
 }
 
 export const profile = async (req: Request, res: Response) => {
-  return res.status(200).json(Users.find(u => u.id === req.user.id))
+  console.log("Users are", Users)
+
+  console.log("UID is", req.user.id)
+
+  const user = Users.find(u => u.id === req.user.id)
+
+  console.log("User is", user)
+
+  if (!user) {
+    throw new ExpressError({
+      code: "NOT_FOUND",
+      message: "User not found!",
+    })
+  }
+
+  return res.status(200).json({ id: user.id, email: user.email })
 }

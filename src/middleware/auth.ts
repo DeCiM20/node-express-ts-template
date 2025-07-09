@@ -6,10 +6,11 @@ import { SessionUserType } from "~/@types/express"
 
 async function readToken(token: string): Promise<SessionUserType> {
   return new Promise((res, rej) => {
-    if (!token) return rej()
+    if (!token) return rej("Expired")
     jwt.verify(token, env.JWT_ACCESS_SECRET, function (err, user) {
       if (err) {
-        return rej()
+        if (err.name === "TokenExpiredError") return rej("Expired")
+        return rej("Invalid")
       }
       return res(user as SessionUserType)
     })
@@ -22,11 +23,19 @@ const protectedRoute = async (
   next: NextFunction
 ) => {
   try {
+    console.log("Cookies are", req.cookies)
     const token = req.cookies["Access-Token"]
     const user = await readToken(token)
     req.user = user
     next()
   } catch (e) {
+    if (e === "Expired") {
+      throw new ExpressError({
+        code: "SESSION_EXPIRED",
+        message: "Session expired - refresh the token to continue!",
+      })
+    }
+
     throw new ExpressError({
       code: "UNAUTHORIZED",
       message: "Unauthorized access - Log in to access the resource!!",
@@ -39,7 +48,8 @@ const verifyRefresh = async (
   res: Response,
   next: NextFunction
 ) => {
-  const token: string | undefined = req.cookies["Refresh-Token"]
+  console.log("Refresh token cookies are", req.cookies)
+  const token = req.cookies["Refresh-Token"]
 
   if (!token) {
     throw new ExpressError({
@@ -48,7 +58,7 @@ const verifyRefresh = async (
     })
   }
 
-  jwt.verify(token, env.JWT_REFRESH_SECRET, function (err, user) {
+  jwt.verify(token as string, env.JWT_REFRESH_SECRET, function (err, user) {
     if (err) {
       throw new ExpressError({
         code: "BAD_REQUEST",
