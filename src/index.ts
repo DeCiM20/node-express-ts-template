@@ -1,15 +1,16 @@
 import "express-async-errors"
 import express, { Express, NextFunction, Request, Response } from "express"
 import cookieParser from "cookie-parser"
-import { env } from "./env"
 import bodyParser from "body-parser"
+import { env } from "./env"
+
 const app: Express = express()
 
 import corsOptions from "./cors"
 import { ERROR_CODES, ExpressError } from "./middleware/error"
 import logger from "./error-logger"
 
-app.options("*", corsOptions)
+app.use(corsOptions)
 app.use(cookieParser())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -22,30 +23,17 @@ import router from "./routes"
 
 app.use("/api", router)
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const error = new ExpressError({
-    code: "NOT_FOUND",
-    message: `Route ${req.originalUrl} not found.`,
-  })
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const error = new ExpressError({ code: "NOT_FOUND", message: `Route ${req.originalUrl} not found.` })
   next(error)
 })
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, _req: Request, res: Response) => {
   if (err instanceof ExpressError) {
     const statusCode = ERROR_CODES[err.code] || 500
-
-    return res
-      .status(statusCode)
-      .json({ status: statusCode, message: err.message, error: err.error })
+    return res.status(statusCode).json({ status: statusCode, message: err.message, error: err.error })
   } else {
-    logger.error("Internal Server Error", {
-      message: err.message,
-      stack: err.stack,
-    })
-
-    return res.status(500).json({
-      status: 500,
-      message: "Internal Server Error !!!",
-    })
+    logger.error("Internal Server Error", { message: err.message, stack: err.stack })
+    return res.status(500).json({ status: 500, message: "Internal Server Error !!!" })
   }
 })

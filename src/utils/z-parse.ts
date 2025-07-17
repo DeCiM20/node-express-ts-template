@@ -1,11 +1,25 @@
-import { ZodError, ZodSchema } from "zod"
-import { ExpressError } from "../middleware/error"
+import { ZodSchema } from "zod"
 
-export const zBodyParse = <T>(schema: ZodSchema<T>, body: any) => {
-  try {
-    return { success: true, data: schema.parse(body), error: null }
-  } catch (error) {
-    const err = error as ZodError
-    return { success: false, data: null, error: err }
+interface BodyParseParams<T> {
+  schema: ZodSchema<T>
+  body: any
+}
+
+export const zBodyParse = <T>({ schema, body }: BodyParseParams<T>) => {
+  const { success, error, data } = schema.safeParse(body)
+
+  if (!success || error) {
+    const zErrors: Record<string, string[] | undefined> = error?.flatten().fieldErrors
+    
+    let errors: Record<string, string> = {}
+
+    Object.keys(zErrors).map(i => {
+      const errorMessage = zErrors[i]?.[0]
+      errors[i] = errorMessage ?? `Invalid input ${i}`
+    })
+
+    return { success, data: null, error: errors }
   }
+
+  return { success: true, data: data, error: null }
 }

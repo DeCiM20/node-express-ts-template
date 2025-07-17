@@ -1,7 +1,7 @@
 import express from "express"
-const router = express.Router()
-
 import Auth from "./auth"
+
+const router = express.Router()
 
 router.use("/auth", Auth)
 
